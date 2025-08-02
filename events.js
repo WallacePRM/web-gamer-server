@@ -1,73 +1,154 @@
-const data = {
-  count: 0,
+/** event = {
+  * id: number,
+  * data: any,
+  * type: EventType,
+  * status: EventStatus
+} */
+
+export const data = {
   players: [],
   events: []
 };
-
-const EventType = {
+export const EventType = {
   enter: "ENTER",
-  leave: "LEAVE",
   move: "MOVE",
   stopMove: "STOP_MOVE",
-  msg: "MSG"
+  msg: "MSG",
+  leave: "LEAVE",
+  inactivity: "INACTIVITY"
+};
+export const EventStatus = {
+  ok: 200,
+  error: 404
 };
 
-exports.data = data;
+function ok(data) {
+  return {
+    status: EventStatus.ok,
+    data: data ?? {}
+  }
+}
 
-exports.eventEnter = function (event) {
-  if (event.type !== EventType.enter) return;
+function error(msg) {
+  return {
+    status: EventStatus.error,
+    data: msg ?? "Falha ao realizar evento"
+  }
+}
 
-  const player = data.players.find(player => player.id === event.data.id);
+export function triggerEvent(event) {
 
-  if (player)
-    return player;
+  data.events.push(event);
+
+  let result;
+  switch (event.type) {
+    case EventType.enter:
+      result = eventEnter(event);
+      break;
+    case EventType.move:
+      result = eventMove(event);
+      break;
+    case EventType.stopMove:
+      result = eventStopMove(event);
+      break;
+    case EventType.msg:
+      result = eventMsg(event);
+      break;
+    case EventType.leave:
+      result = eventLeave(event);
+      break;
+    case EventType.inactivity:
+      result = eventStopInactivity(event);
+      break;
+  }
+
+  return {
+    id: event.id,
+    status: event.status,
+    type: event.type,
+    ...result
+  }
+}
+
+function eventEnter(event) {
+
+  const player = event.data;
+  const currentPlayer = data.players.find(p => p.id === player.id);
+
+  if (currentPlayer) {
+    currentPlayer.time = new Date();
+    return ok(currentPlayer);
+  }
+
+  if (player.id) {
+    player.time = new Date();
+    data.players.push(player);
+    return ok(player);
+  }
+
+  const nameHasExist = data.players.some(p => p.name === player.name);
+  if (nameHasExist)
+    return error('Nome em uso');
 
   const newPlayer = {
     id: crypto.randomUUID(),
-    name: event.data.name,
-    skin: event.data.skin,
-    position: event.data.position
+    name: player.name,
+    skin: player.skin,
+    position: player.position
   };
 
   data.players.push(newPlayer);
-  return newPlayer;
-};
+  return ok(newPlayer);
+}
 
-exports.eventMove = function (event) {
-  if (event.type !== EventType.move) return;
+function eventMove(event) {
 
-  const player = data.players.find(
-    (player) => event.data.playerId === player.id
-  );
+  const player = data.players.find(p => event.data.playerId === p.id);
+  if (!player)
+    return null;
 
-  if (player) {
-    player.position = event.data.position;
-    player.time = new Date();
-  }
+  player.position = event.data.position;
+  player.time = new Date();
 
-  return event.data;
-};
+  return ok(event.data);
+}
 
-exports.eventStopMove = function (event) {
-  if (event.type !== EventType.stopMove) return;
+function eventStopMove(event) {
 
-  return event.data;
-};
+  const player = data.players.find(p => event.data.playerId === p.id);
+  if (!player)
+    return null;
 
-exports.eventMsg = function (event) {
-  if (event.type !== EventType.msg) return;
+  return ok(event.data);
+}
 
-  return event.data;
-};
+function eventMsg(event) {
 
-exports.eventLeave = function (event) {
-  if (event.type !== EventType.leave) return;
+  const player = data.players.find(p => event.data.playerId === p.id);
+  if (!player)
+    return null;
 
-  const playerIndex = data.players.findIndex((player) => {
-    return player.id === event.data.id;
-  });
+  return ok(event.data);
+}
 
-  if (playerIndex === -1) return;
+function eventLeave(event) {
+
+  const playerIndex = data.players.findIndex((player) => player.id === event.data.playerId);
+  if (playerIndex === -1)
+    return null;
 
   data.players.splice(playerIndex, 1);
-};
+
+  return ok(event.data);
+}
+
+function eventStopInactivity(event) {
+
+  const player = data.players.find((player) => player.id === event.data.playerId);
+  if (!player)
+    return null;
+
+  player.time = event.data.time;
+
+  return ok(event.data);
+}

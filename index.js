@@ -1,19 +1,20 @@
 
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 5001;
 const cors = require('cors');
-const events = require('./events.js');
+const { data, triggerEvent } = require('./events');
+const { monitorPlayers } = require('./monitor');
 require('./monitor');
 
 // SERVER HTTP
 
+const app = express();
+const port = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
 app.get('/players', (req, res) => {
 
-	res.send(events.data.players);
+	res.send(data.players);
 });
 
 // SERVER WEB SOCKET
@@ -28,28 +29,25 @@ wsServer.on('connection', (wsClient) => {
 	wsClient.on('message', (msg) => {
 
 		const event = JSON.parse(msg);
-
-		event.id = ++events.data.count;
-		events.data.events.push(event);
-
-		let result = events.eventEnter(event) || events.eventMove(event) ||
-			events.eventStopMove(event) || events.eventMsg(event);
-
-		event.data = result;
-
-		if (event.data === undefined) {
-
+		const response = triggerEvent(event);
+		if (!response)
 			return;
+
+		if (event.id) {
+			response.id = event.id;
+			wsClient.send(JSON.stringify(response));
 		}
 
-		for (const client of wsServer.clients) {
+		const broadcast = { ...event };
+		delete broadcast.id;
 
-			client.send(JSON.stringify(event));
-		}
-
+		for (const client of wsServer.clients)
+			if (client.readyState === WebSocket.OPEN)
+				client.send(JSON.stringify(broadcast));
 	});
-});
 
+	setInterval(() => monitorPlayers(wsClient), 1000 * 11);
+});
 
 httpServer.listen(port, () => {
 

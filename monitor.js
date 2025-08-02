@@ -1,26 +1,25 @@
 
-var { data } = require('./events');
+import { data, EventType, EventStatus } from "./events.js";
 
-function monitorPlayers() {
+export function monitorPlayers(wsClient) {
 
 	const currentTime = new Date();
 
-	for (let i = 0; i < data.players.length; i++) {
+	for (const player of data.players) {
 
-		const result = ((currentTime - data.players[i].time) / 1000) / 60;
+		const minutesInactive = ((currentTime - new Date(player.time)) / 1000) / 60;
+		if (minutesInactive <= 1)
+			continue;
 
-		if (result > 1) {
+		const event = {
+			id: crypto.randomUUID(),
+			status: EventStatus.ok,
+			type: EventType.inactivity,
+			data: {
+				playerId: player.id
+			}
+		};
 
-			data.events.push({
-				type: 'LEAVE',
-				data: {
-					playerId: data.players[i].id
-				}
-			});
-
-			data.players.splice(i, 1);
-		}
+		wsClient.send(JSON.stringify(event));
 	}
 }
-
-setInterval(monitorPlayers, 1000 * 20);
