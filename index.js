@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const { data, triggerEvent } = require('./events');
 const { monitorPlayers } = require('./monitor');
-require('./monitor');
 
 // SERVER HTTP
 

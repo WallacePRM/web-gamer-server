@@ -1,7 +1,7 @@
 
-import { data, EventType, EventStatus } from "./events.js";
+const { data, EventType, EventStatus } =  require("./events.js");
 
-export function monitorPlayers(wsClient) {
+function monitorPlayers(wsClient) {
 
 	const currentTime = new Date();
 
@@ -22,4 +22,8 @@ export function monitorPlayers(wsClient) {
 
 		wsClient.send(JSON.stringify(event));
 	}
+}
+
+module.exports = {
+  monitorPlayers
 }

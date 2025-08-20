@@ -5,11 +5,11 @@
   * status: EventStatus
 } */
 
-export const data = {
+const data = {
   players: [],
   events: []
 };
-export const EventType = {
+const EventType = {
   enter: "ENTER",
   move: "MOVE",
   stopMove: "STOP_MOVE",
@@ -17,7 +17,7 @@ export const EventType = {
   leave: "LEAVE",
   inactivity: "INACTIVITY"
 };
-export const EventStatus = {
+const EventStatus = {
   ok: 200,
   error: 404
 };
@@ -36,7 +36,7 @@ function error(msg) {
   }
 }
 
-export function triggerEvent(event) {
+function triggerEvent(event) {
 
   data.events.push(event);
 
@@ -151,4 +151,11 @@ function eventStopInactivity(event) {
   player.time = event.data.time;
 
   return ok(event.data);
+}
+
+module.exports = {
+  data,
+  EventType,
+  EventStatus,
+  triggerEvent
 }
